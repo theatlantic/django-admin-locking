@@ -59,6 +59,11 @@ class LockAPIView(View):
 
     def post(self, request, app, model, object_id):
         """Create or maintain a lock on an object if possible"""
+        # Allow for deletion by GET parameter for Navigator.sendBeacon POST
+        # requests called by the onbeforeunload event handler
+        if request.GET.get('method') == 'delete':
+            return self.delete(request, app, model, object_id)
+
         try:
             lock = Lock.objects.lock_for_user(content_type=self.lock_ct_type,
                                               object_id=object_id,

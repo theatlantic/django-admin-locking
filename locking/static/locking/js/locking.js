@@ -151,10 +151,20 @@
             // Unlock the form when leaving the page
             $(window).on('beforeunload submit', function() {
                 if (self.hasLock && self.removeLockOnUnload) {
-                    // We have to assure that our unlock request gets
-                    // through before the user leaves the page, so it
-                    // shouldn't run asynchronously.
-                    self.api.unlock({'async': false});
+                    // We have to assure that our unlock request gets through
+                    // before the user leaves the page, so it shouldn't run
+                    // asynchronously.
+                    //
+                    // However, newer browser versions have deprecated
+                    // synchronous AJAX calls, and instead provide a "Beacon"
+                    // API for sending requests before a page unloads. If
+                    // window.navigator.sendBeacon is available we use it
+                    // instead of a synchronous AJAX call
+                    if (typeof navigator.sendBeacon === 'function') {
+                        navigator.sendBeacon(self.api.apiURL + '?method=delete');
+                    } else {
+                        self.api.unlock({'async': false});
+                    }
                     self.hasLock = false;
                 }
             });
