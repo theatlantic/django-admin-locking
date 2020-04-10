@@ -3,6 +3,8 @@ from __future__ import absolute_import, unicode_literals, division
 import json
 import types
 
+import six
+
 from django import forms
 from django.conf import settings
 from django.conf.urls import url
@@ -176,12 +178,8 @@ class LockingAdminMixin(object):
         """If editing an existing object, add form locking media to the media context"""
         if not add and getattr(obj, 'pk', False):
             locking_media = forms.Media(js=(self.locking_admin_form_js_url(obj.pk), ))
-            try:
-                str_type = basestring
-            except NameError:  # basestring does not exist in Python3
-                str_type = str
-            if isinstance(context['media'], str_type):
-                locking_media = unicode(locking_media)
+            if isinstance(context['media'], six.string_types):
+                locking_media = six.text_type(locking_media)
             context['media'] += locking_media
         return super(LockingAdminMixin, self).render_change_form(
             request, context, add=add, obj=obj, **kwargs)
