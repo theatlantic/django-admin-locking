@@ -1,8 +1,5 @@
 language: python
 
-python:
-  - 2.7
-
 sudo: false
 
 install:
@@ -13,23 +10,23 @@ install:
 before_script:
   - flake8 --max-line-length=100 --exclude=migrations locking
 
-env:
-  - TOXENV=py27-django111
-  - TOXENV=py34-django111
-  - TOXENV=py34-django20
-  - TOXENV=py34-django21
-  - TOXENV=py35-django111
-  - TOXENV=py35-django20
-  - TOXENV=py35-django21
-  - TOXENV=py36-django111
-  - TOXENV=py36-django20
-  - TOXENV=py36-django21
-  - TOXENV=py37-django20
-  - TOXENV=py37-django21
-  - TOXENV=py27-django111-grappelli
-  - TOXENV=py34-django111-grappelli
-  - TOXENV=py35-django111-grappelli
-  - TOXENV=py36-django111-grappelli
+matrix:
+  include:
+    - { python: 2.7, env: TOXENV=py27-django111 }
+    - { python: 3.4, env: TOXENV=py34-django111 }
+    - { python: 3.4, env: TOXENV=py34-django20 }
+    - { python: 3.5, env: TOXENV=py35-django111 }
+    - { python: 3.5, env: TOXENV=py35-django20 }
+    - { python: 3.5, env: TOXENV=py35-django21 }
+    - { python: 3.6, env: TOXENV=py36-django111 }
+    - { python: 3.6, env: TOXENV=py36-django20 }
+    - { python: 3.6, env: TOXENV=py36-django21 }
+    - { python: 3.7, env: TOXENV=py37-django20 }
+    - { python: 3.7, env: TOXENV=py37-django21 }
+    - { python: 2.7, env: TOXENV=py27-django111-grappelli }
+    - { python: 3.4, env: TOXENV=py34-django111-grappelli }
+    - { python: 3.5, env: TOXENV=py35-django111-grappelli }
+    - { python: 3.6, env: TOXENV=py36-django111-grappelli }
 
 script:
   - travis_retry tox
