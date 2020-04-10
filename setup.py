@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='django-admin-locking',
-    version='1.6',
+    version='1.7.0b1',
     url='https://github.com/theatlantic/django-admin-locking',
     download_url='https://github.com/theatlantic/django-admin-locking/tarball/v1.6',
     license='BSD',
