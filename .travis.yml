@@ -10,6 +10,30 @@ install:
 before_script:
   - flake8 --max-line-length=100 --exclude=migrations locking
 
+cache:
+  pip: true
+  directories:
+    - bin
+
+addons:
+  chrome: stable
+
+env:
+  global:
+    - PATH=$HOME/bin:$PATH
+    - CHROME_HEADLESS=1
+
+before_script:
+  - mkdir -p ~/bin
+  - |
+    if [ ! -e ~/bin/chromedriver ]; then
+      export CHROMEDRIVER_VERSION=$(curl -q http://chromedriver.storage.googleapis.com/LATEST_RELEASE)
+      wget -N http://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip -P ~/
+      unzip ~/chromedriver_linux64.zip -d ~/bin
+      rm ~/chromedriver_linux64.zip
+      chmod +x ~/bin/chromedriver
+    fi
+
 matrix:
   include:
     - { python: 2.7, env: TOXENV=py27-django111 }

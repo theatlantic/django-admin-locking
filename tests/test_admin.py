@@ -131,8 +131,13 @@ class TestLiveAdmin(StaticLiveServerTestCase):
 
         # Instantiate and login Selenium browser. You must have chromedriver somewhere
         # on your path
-        self.browser = webdriver.Chrome()
-        self.browser.set_window_size(1120, 550)
+        options = webdriver.ChromeOptions()
+        if os.environ.get('CHROME_HEADLESS'):
+            options.add_argument('headless')
+            options.add_argument('disable-gui')
+            options.add_argument('no-sandbox')
+        options.add_argument('window-size=1120x550')
+        self.browser = webdriver.Chrome(options=options)
         self.browser.set_page_load_timeout(10)
         self.user, self.password = user_factory(BlogArticle)
 
