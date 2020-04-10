@@ -171,11 +171,15 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         self._login('admin:locking_blogarticle_change', self.blog_article.pk)
         self._wait_for_ajax()
         self.assert_no_js_errors()
+
+        self._wait_until(lambda b: len(Lock.objects.for_object(self.blog_article)) == 1,
+            "Timeout waiting for lock creation")
+
         self._load('admin:locking_blogarticle_changelist')
 
         # Check that lock was deleted
-        locks = Lock.objects.for_object(self.blog_article)
-        self.assertEqual(len(locks), 0)
+        self._wait_until(lambda b: len(Lock.objects.for_object(self.blog_article)) == 0,
+            "Timeout waiting for lock removal")
 
     def test_changeform_locked_by_other_user(self):
         other_user, _ = user_factory(model=BlogArticle)
