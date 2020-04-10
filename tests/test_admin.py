@@ -108,6 +108,11 @@ class TestLiveAdmin(StaticLiveServerTestCase):
     def _wait_until_page_loaded(self):
         self._wait_until(lambda b: b.find_element_by_tag_name('body'))
 
+    def _wait_for_locking_js_init(self):
+        self._wait_until(
+            lambda b: b.execute_script(
+                "return !!(locking.changeListViewInstance || locking.lockingFormInstance)"))
+
     def _wait_for_ajax(self):
         self._wait_until(
             lambda b: b.execute_script("return !!window.locking"),
@@ -155,6 +160,7 @@ class TestLiveAdmin(StaticLiveServerTestCase):
     def test_changeform_locks_for_user(self):
         """When visiting an unlocked page, a new lock should be created and the form should be editable"""
         self._login('admin:locking_blogarticle_change', self.blog_article.pk)
+        self._wait_for_locking_js_init()
         self._wait_for_ajax()
         self.assert_no_js_errors()
 
@@ -169,6 +175,7 @@ class TestLiveAdmin(StaticLiveServerTestCase):
 
     def test_changeform_unlocks_for_user(self):
         self._login('admin:locking_blogarticle_change', self.blog_article.pk)
+        self._wait_for_locking_js_init()
         self._wait_for_ajax()
         self.assert_no_js_errors()
 
@@ -183,6 +190,7 @@ class TestLiveAdmin(StaticLiveServerTestCase):
 
     def test_changeform_unlocks_for_user_after_close(self):
         self._login('admin:locking_blogarticle_change', self.blog_article.pk)
+        self._wait_for_locking_js_init()
         self._wait_for_ajax()
         self.assert_no_js_errors()
 
@@ -199,6 +207,7 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         Lock.objects.force_lock_object_for_user(self.blog_article, other_user)
 
         self._login('admin:locking_blogarticle_change', self.blog_article.pk)
+        self._wait_for_locking_js_init()
         self._wait_for_ajax()
         self._wait_for_el('#locking-warning')
         self.assert_no_js_errors()
@@ -221,6 +230,7 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         Lock.objects.force_lock_object_for_user(self.blog_article, other_user)
 
         self._login('admin:locking_blogarticle_change', self.blog_article.pk)
+        self._wait_for_locking_js_init()
         self._wait_for_ajax()
         self.assert_no_js_errors()
         self._load('admin:locking_blogarticle_changelist')
@@ -245,6 +255,7 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         
         WebDriverWait(self.browser, 10).until(EC.alert_is_present())
         self.browser.switch_to.alert.accept()
+        self._wait_for_locking_js_init()
         self._wait_for_ajax()
 
         lock = Lock.objects.for_object(self.blog_article)[0]
@@ -278,6 +289,9 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         old_title = BlogArticle.objects.filter(pk=self.blog_article.pk).values_list('title', flat=True)[0]
 
         self._login('admin:locking_blogarticle_change', self.blog_article.pk)
+        self._wait_until_page_loaded()
+        self._wait_for_locking_js_init()
+        self._wait_for_ajax()
         old_page_id = self.browser.find_element_by_tag_name('html').id
         self.browser.execute_script("document.getElementsByName('csrfmiddlewaretoken')[0].removeAttribute('disabled')")
         self.browser.execute_script("document.getElementById('id_title').value = 'Edited Title'")
@@ -286,14 +300,21 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         # Wait for the page to reload
         self._wait_until(lambda b: b.find_element_by_tag_name('html').id != old_page_id)
         self._wait_until_page_loaded()
-        self.assertTrue('locked by' in self.browser.page_source)
-        new_title = BlogArticle.objects.filter(pk=self.blog_article.pk).values_list('title', flat=True)[0]
+        self._wait_for_locking_js_init()
+        self._wait_for_ajax()
+
+        self.blog_article.refresh_from_db()
+        new_title = self.blog_article.title
 
         # The title should not have changed
-        self.assertEqual(old_title, new_title)
+        self.assertEqual(old_title, new_title, "Title changed even though form was locked")
+
+        self.assertTrue('locked by' in self.browser.page_source,
+            "'Locked by other user' validation error missing from page source")
 
     def test_locked_form_loses_lock(self):
         self._login('admin:locking_blogarticle_change', self.blog_article.pk)
+        self._wait_for_locking_js_init()
         self._wait_for_ajax()
 
         other_user, _ = user_factory(BlogArticle)
@@ -321,12 +342,16 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         other_user, _ = user_factory(model=BlogArticle)
         Lock.objects.force_lock_object_for_user(self.blog_article, other_user)
         self._login('admin:locking_blogarticle_changelist')
+        self._wait_for_locking_js_init()
+        self._wait_for_ajax()
+        self.assert_no_js_errors()
 
         lock_icon = self.browser.find_element_by_id('locking-%s' % self.blog_article.pk)
         old_page_id = self.browser.find_element_by_tag_name('html').id
         lock_icon.click()
 
         WebDriverWait(self.browser, 10).until(EC.alert_is_present())
+        self.assertIn("Are you sure", self.browser.switch_to.alert.text)
         self.browser.switch_to.alert.accept()
         self._wait_for_ajax()
 
