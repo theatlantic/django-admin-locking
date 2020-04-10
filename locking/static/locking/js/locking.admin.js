@@ -63,6 +63,7 @@
      * Extends LockingForm with logic specific to Django admin forms
      */
     var LockingAdminForm = function($form, opts) {
+        var self = this;
         this.init($form, opts);
 
         var cookieName = opts.appLabel + opts.modelName + 'unlock';
@@ -70,10 +71,37 @@
             this.hasHadLock = true;
             this.takeLock();
             locking.cookies.del(cookieName);
+        } else {
+            // Attempt to get a lock
+            this.getLock();
         }
 
+        // Attempt to get / maintain a lock ever ping number of seconds
+        setInterval(function() { self.getLock(); }, self.ping * 1000);
+
+        // Unlock the form when leaving the page
+        $(window).on('beforeunload submit', function() {
+            if (self.hasLock && self.removeLockOnUnload) {
+                // We have to assure that our unlock request gets through
+                // before the user leaves the page, so it shouldn't run
+                // asynchronously.
+                //
+                // However, newer browser versions have deprecated
+                // synchronous AJAX calls, and instead provide a "Beacon"
+                // API for sending requests before a page unloads. If
+                // window.navigator.sendBeacon is available we use it
+                // instead of a synchronous AJAX call
+                if (typeof navigator.sendBeacon === 'function') {
+                    navigator.sendBeacon(self.api.apiURL + '?method=delete');
+                } else {
+                    self.api.unlock({'async': false});
+                }
+                self.hasLock = false;
+            }
+        });
+
+
         // Don't remove the lock when choosing 'save and continue editing'
-        var self = this;
         $('input[type=submit][name="_continue"]').click(function() {
             self.removeLockOnUnload = false;
         });
