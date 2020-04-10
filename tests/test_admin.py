@@ -227,7 +227,7 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         self.browser.find_element_by_id('locking-take-lock').click()
         
         WebDriverWait(self.browser, 10).until(EC.alert_is_present())
-        self.browser.switch_to_alert().accept()
+        self.browser.switch_to.alert.accept()
         self._wait_for_ajax()
 
         lock = Lock.objects.for_object(self.blog_article)[0]
@@ -245,7 +245,7 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         self.browser.find_element_by_id('locking-take-lock').click()
 
         WebDriverWait(self.browser, 10).until(EC.alert_is_present())
-        self.browser.switch_to_alert().accept()
+        self.browser.switch_to.alert.accept()
 
         # ensure the page has reloaded
         WebDriverWait(self.browser, 10).until(staleness_of(body_el))
@@ -283,7 +283,7 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         Lock.objects.force_lock_object_for_user(user=other_user, obj=self.blog_article)
 
         WebDriverWait(self.browser, 10).until(EC.alert_is_present())
-        self.browser.switch_to_alert().accept()
+        self.browser.switch_to.alert.accept()
 
         self.assertTrue(self.browser.find_element_by_id('id_title').get_attribute('disabled'))
         self.assertTrue(self.browser.find_element_by_id('id_content').get_attribute('disabled'))
@@ -310,7 +310,7 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         lock_icon.click()
 
         WebDriverWait(self.browser, 10).until(EC.alert_is_present())
-        self.browser.switch_to_alert().accept()
+        self.browser.switch_to.alert.accept()
         self._wait_for_ajax()
 
         lock = Lock.objects.for_object(self.blog_article)[0]
