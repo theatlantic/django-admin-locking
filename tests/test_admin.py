@@ -181,6 +181,19 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         self._wait_until(lambda b: len(Lock.objects.for_object(self.blog_article)) == 0,
             "Timeout waiting for lock removal")
 
+    def test_changeform_unlocks_for_user_after_close(self):
+        self._login('admin:locking_blogarticle_change', self.blog_article.pk)
+        self._wait_for_ajax()
+        self.assert_no_js_errors()
+
+        self._wait_until(lambda b: len(Lock.objects.for_object(self.blog_article)) == 1,
+            "Timeout waiting for lock creation")
+
+        self.browser.get('about:blank')
+
+        self._wait_until(lambda b: len(Lock.objects.for_object(self.blog_article)) == 0,
+            "Timeout waiting for lock removal")
+
     def test_changeform_locked_by_other_user(self):
         other_user, _ = user_factory(model=BlogArticle)
         Lock.objects.force_lock_object_for_user(self.blog_article, other_user)
