@@ -1,5 +1,11 @@
 Changelog
+
 =========
+
+**1.7.0 (April 13, 2020)**
+
+* Fix bug where locks weren't being deleted in onbeforeunload handler
+* Fix race condition bug when taking over a lock
 
 **1.5 (June 28, 2018)**
 
