@@ -3,8 +3,6 @@ from __future__ import absolute_import, unicode_literals, division
 import json
 import types
 
-import six
-
 from django import forms
 from django.conf import settings
 from django.conf.urls import url
@@ -49,7 +47,8 @@ class LockingAdminMixin(object):
     @property
     def media(self):
         media = super(LockingAdminMixin, self).media + forms.Media(
-            js=('locking/js/locking.js',
+            js=('admin/js/jquery.init.js',
+                'locking/js/locking.js',
                 'locking/js/locking.admin.js',
                 self.locking_admin_changelist_js_url()),
             css={'all': ('locking/css/changelist.css', )}
@@ -177,9 +176,12 @@ class LockingAdminMixin(object):
     def render_change_form(self, request, context, add=False, obj=None, **kwargs):
         """If editing an existing object, add form locking media to the media context"""
         if not add and getattr(obj, 'pk', False):
-            locking_media = forms.Media(js=(self.locking_admin_form_js_url(obj.pk), ))
-            if isinstance(context['media'], six.string_types):
-                locking_media = six.text_type(locking_media)
+            locking_media = forms.Media(js=(
+                'admin/js/jquery.init.js',
+                'locking/js/locking.js',
+                'locking/js/locking.admin.js',
+                self.locking_admin_form_js_url(obj.pk),
+            ))
             context['media'] += locking_media
         return super(LockingAdminMixin, self).render_change_form(
             request, context, add=add, obj=obj, **kwargs)
