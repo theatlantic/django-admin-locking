@@ -4,5 +4,5 @@ from locking.models import Lock
 
 
 class Command(BaseCommand):
-    def handle(self):
+    def handle(self, *args, **options):
         Lock.objects.delete_expired()
