@@ -42,6 +42,7 @@
                 headers: {
                     "X-CSRFToken": csrftoken,
                 },
+                mode: 'same-origin' // Do not send CSRF token to another domain.
             };
             var self = this;
             this._onAjaxStart();
