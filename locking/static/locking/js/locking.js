@@ -34,10 +34,14 @@
     };
     $.extend(locking.API.prototype, {
         ajax: function(opts) {
+            const csrftoken = document.querySelector("[name=csrfmiddlewaretoken]").value;
             var defaults = {
                 url: this.apiURL,
                 async: true,
-                cache: false
+                cache: false,
+                headers: {
+                    "X-CSRFToken": csrftoken,
+                },
             };
             var self = this;
             this._onAjaxStart();
