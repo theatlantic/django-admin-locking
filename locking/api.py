@@ -1,6 +1,9 @@
 from __future__ import absolute_import, unicode_literals, division
 
-from collections.abc import Iterable
+try:
+    from collections.abc import Iterable
+except ImportError:
+    from collections import Iterable
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
