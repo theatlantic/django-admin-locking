@@ -9,7 +9,7 @@ from django.conf.urls import url
 from django.urls import reverse
 from django.shortcuts import render
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from .models import Lock
 from .settings import DEFAULT_PING_SECONDS, DEFAULT_SHARE_ADMIN_JQUERY
