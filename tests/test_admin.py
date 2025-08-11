@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.expected_conditions import staleness_of
@@ -98,17 +99,20 @@ class TestLiveAdmin(StaticLiveServerTestCase):
 
     def _login(self, *args, **kwargs):
         self._load(*args, **kwargs)
-        self.browser.find_element_by_id("id_username").send_keys(self.user.username)
-        self.browser.find_element_by_id("id_password").send_keys(self.password)
-        self.browser.find_element_by_xpath('//input[@value="Log in"]').click()
+        self.browser.find_element(By.ID, "id_username").send_keys(self.user.username)
+        self.browser.find_element(By.ID, "id_password").send_keys(self.password)
+        self.browser.find_element(By.XPATH, '//input[@value="Log in"]').click()
 
     def _wait_until(self, callback, msg=None):
         WebDriverWait(self.browser, 10).until(callback, msg)
 
     def _wait_until_page_loaded(self):
-        self._wait_until(lambda b: b.find_element_by_tag_name('body'))
+        self._wait_until(lambda b: b.find_element(By.TAG_NAME, 'body'))
 
     def _wait_for_locking_js_init(self):
+        self._wait_until(
+            lambda b: b.execute_script("return !!window.locking"),
+            "Timeout waiting for window.locking")
         self._wait_until(
             lambda b: b.execute_script(
                 "return !!(locking.changeListViewInstance || locking.lockingFormInstance)"))
@@ -126,6 +130,9 @@ class TestLiveAdmin(StaticLiveServerTestCase):
             lambda b: b.execute_script("return document.querySelector('%s')" % selector))
 
     def assert_no_js_errors(self):
+        self._wait_until(
+            lambda b: b.execute_script("return !!window.locking_test"),
+            "Timeout waiting for window.locking_test")
         errors = self.browser.execute_script("return window.locking_test.errors")
         self.assertEqual(len(errors), 0, 'JavaScript Errors: "%s"' % '. '.join(errors))
 
@@ -154,8 +161,8 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         self._login('admin:locking_blogarticle_add')
         self._wait_for_ajax()
         self.assert_no_js_errors()
-        self.assertFalse(self.browser.find_element_by_id('id_title').get_attribute('disabled'))
-        self.assertFalse(self.browser.find_element_by_id('id_content').get_attribute('disabled'))
+        self.assertFalse(self.browser.find_element(By.ID, 'id_title').get_attribute('disabled'))
+        self.assertFalse(self.browser.find_element(By.ID, 'id_content').get_attribute('disabled'))
 
     def test_changeform_locks_for_user(self):
         """When visiting an unlocked page, a new lock should be created and the form should be editable"""
@@ -165,8 +172,8 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         self.assert_no_js_errors()
 
         # Form should be editable
-        self.assertFalse(self.browser.find_element_by_id('id_title').get_attribute('disabled'))
-        self.assertFalse(self.browser.find_element_by_id('id_content').get_attribute('disabled'))
+        self.assertFalse(self.browser.find_element(By.ID, 'id_title').get_attribute('disabled'))
+        self.assertFalse(self.browser.find_element(By.ID, 'id_content').get_attribute('disabled'))
 
         # Check that lock was created
         locks = Lock.objects.for_object(self.blog_article)
@@ -213,11 +220,11 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         self.assert_no_js_errors()
 
         # Should display who has locked the form
-        self.assertTrue(other_user.username in self.browser.find_element_by_id('locking-warning').text)
+        self.assertTrue(other_user.username in self.browser.find_element(By.ID, 'locking-warning').text)
 
         # Form should not be editable
-        self.assertTrue(self.browser.find_element_by_id('id_title').get_attribute('disabled'))
-        self.assertTrue(self.browser.find_element_by_id('id_content').get_attribute('disabled'))
+        self.assertTrue(self.browser.find_element(By.ID, 'id_title').get_attribute('disabled'))
+        self.assertTrue(self.browser.find_element(By.ID, 'id_content').get_attribute('disabled'))
 
         # Check that lock was not overwritten
         locks = Lock.objects.for_object(self.blog_article)
@@ -248,10 +255,8 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         self._wait_for_el('#locking-take-lock')
         self.assert_no_js_errors()
 
-        
-
         self.browser.execute_script('window.locking.lockingFormInstance.hasHadLock = true')
-        self.browser.find_element_by_id('locking-take-lock').click()
+        self.browser.find_element(By.ID, 'locking-take-lock').click()
         
         WebDriverWait(self.browser, 10).until(EC.alert_is_present())
         self.browser.switch_to.alert.accept()
@@ -269,8 +274,8 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         self._wait_for_el('#locking-take-lock')
         self.assert_no_js_errors()
 
-        body_el = self.browser.find_element_by_tag_name('body')
-        self.browser.find_element_by_id('locking-take-lock').click()
+        body_el = self.browser.find_element(By.TAG_NAME, 'body')
+        self.browser.find_element(By.ID, 'locking-take-lock').click()
 
         WebDriverWait(self.browser, 10).until(EC.alert_is_present())
         self.browser.switch_to.alert.accept()
@@ -292,13 +297,17 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         self._wait_until_page_loaded()
         self._wait_for_locking_js_init()
         self._wait_for_ajax()
-        old_page_id = self.browser.find_element_by_tag_name('html').id
-        self.browser.execute_script("document.getElementsByName('csrfmiddlewaretoken')[0].removeAttribute('disabled')")
+        old_page_id = self.browser.find_element(By.TAG_NAME, 'html').id
+        self.browser.execute_script(
+            "document.getElementsByName('csrfmiddlewaretoken').forEach((el) =>"
+            " el.removeAttribute('disabled'))"
+        )
         self.browser.execute_script("document.getElementById('id_title').value = 'Edited Title'")
+
         self.browser.execute_script("document.getElementById('blogarticle_form').submit()")
 
         # Wait for the page to reload
-        self._wait_until(lambda b: b.find_element_by_tag_name('html').id != old_page_id)
+        self._wait_until(lambda b: b.find_element(By.TAG_NAME, 'html').id != old_page_id)
         self._wait_until_page_loaded()
         self._wait_for_locking_js_init()
         self._wait_for_ajax()
@@ -323,8 +332,8 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         WebDriverWait(self.browser, 10).until(EC.alert_is_present())
         self.browser.switch_to.alert.accept()
 
-        self.assertTrue(self.browser.find_element_by_id('id_title').get_attribute('disabled'))
-        self.assertTrue(self.browser.find_element_by_id('id_content').get_attribute('disabled'))
+        self.assertTrue(self.browser.find_element(By.ID, 'id_title').get_attribute('disabled'))
+        self.assertTrue(self.browser.find_element(By.ID, 'id_content').get_attribute('disabled'))
 
     def test_changelist_shows_lock(self):
         """The correct article should be listed as locked on the changelist view"""
@@ -333,8 +342,8 @@ class TestLiveAdmin(StaticLiveServerTestCase):
 
         self._login('admin:locking_blogarticle_changelist')
         self.assert_no_js_errors()
-        elem_1 = self.browser.find_element_by_id('locking-%s' % self.blog_article.pk)
-        elem_2 = self.browser.find_element_by_id('locking-%s' % self.blog_article_2.pk)
+        elem_1 = self.browser.find_element(By.ID, 'locking-%s' % self.blog_article.pk)
+        elem_2 = self.browser.find_element(By.ID, 'locking-%s' % self.blog_article_2.pk)
         self.assertTrue('locked' in elem_1.get_attribute('class'))
         self.assertFalse('locked' in elem_2.get_attribute('class'))
 
@@ -346,8 +355,8 @@ class TestLiveAdmin(StaticLiveServerTestCase):
         self._wait_for_ajax()
         self.assert_no_js_errors()
 
-        lock_icon = self.browser.find_element_by_id('locking-%s' % self.blog_article.pk)
-        old_page_id = self.browser.find_element_by_tag_name('html').id
+        lock_icon = self.browser.find_element(By.ID, 'locking-%s' % self.blog_article.pk)
+        old_page_id = self.browser.find_element(By.TAG_NAME, 'html').id
         lock_icon.click()
 
         WebDriverWait(self.browser, 10).until(EC.alert_is_present())
