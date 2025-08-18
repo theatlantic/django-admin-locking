@@ -5,14 +5,21 @@ import types
 
 from django import forms
 from django.conf import settings
-from django.conf.urls import url
 from django.urls import reverse
 from django.shortcuts import render
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext as _
+try:
+    from django.utils.translation import gettext as _
+except ImportError:
+    from django.utils.translation import ugettext as _
 
 from .models import Lock
 from .settings import DEFAULT_PING_SECONDS, DEFAULT_SHARE_ADMIN_JQUERY
+
+try:
+    from django.urls import re_path as url
+except ImportError:
+    from django.conf.urls import url
 
 __all__ = ('LockingValidationError', 'LockingAdminMixin')
 

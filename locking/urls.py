@@ -1,6 +1,9 @@
 from __future__ import absolute_import, unicode_literals, division
 
-from django.conf.urls import url
+try:
+    from django.urls import re_path as url
+except ImportError:
+    from django.conf.urls import url
 
 from .api import LockAPIView
 
