@@ -10,7 +10,6 @@ setup(
     author='Josh West',
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
-    install_requires=['six'],
     zip_safe=False,
     keywords=['Django', 'admin', 'locking'],
     classifiers=[
