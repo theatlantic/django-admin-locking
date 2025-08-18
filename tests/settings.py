@@ -3,12 +3,11 @@ from __future__ import absolute_import, unicode_literals, division
 
 import os
 import sys
-import imp
 
 import django
 
 try:
-    imp.find_module('grappelli')
+    import grappelli
 except ImportError:
     GRAPPELLI_INSTALLED = False
 else:
