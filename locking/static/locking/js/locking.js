@@ -49,6 +49,10 @@
                 opts.complete = [];
             }
             opts.complete.push(self._onAjaxEnd);
+            var csrfTokenInput = document.querySelector('*[name="csrfmiddlewaretoken"]');
+            if (csrfTokenInput) {
+                opts.headers = {"X-CSRFToken": csrfTokenInput.value};
+            }
             $.ajax($.extend(defaults, opts));
         },
         lock: function(opts) {
