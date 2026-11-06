@@ -142,6 +142,8 @@ class LockingAdminMixin(object):
                 'lockedByUserText': _('Locked by'),
                 'takeLockText': _('Take over lock'),
                 'formIsLockedByText': _('Form is locked by'),
+                'postAvailableText': _('This post is now available.'),
+                'editThisPostText': _('Edit this post'),
                 'lockWasTakenByUserText': _('Another user has taken your lock of this form'),
                 'confirmTakeLockText': _('Are you sure you want to remove this lock?'),
                 'networkWarningText': _('Warning! Due to loss of network connectivity '

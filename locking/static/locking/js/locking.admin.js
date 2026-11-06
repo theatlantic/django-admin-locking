@@ -76,8 +76,18 @@
             this.getLock();
         }
 
-        // Attempt to get / maintain a lock ever ping number of seconds
-        setInterval(function() { self.getLock(); }, self.ping * 1000);
+        // Every ping number of seconds: maintain the lock if we hold it,
+        // otherwise only check (read-only) whether the post has become free.
+        // A tab without the lock must never send the lock-claiming POST, or
+        // it would silently take the lock when the holder's lock lapses
+        // (e.g. laptop sleep), triggering a bogus "lock was taken" alert.
+        setInterval(function() {
+            if (self.hasLock) {
+                self.getLock();
+            } else {
+                self.checkAvailable();
+            }
+        }, self.ping * 1000);
 
         // Unlock the form when leaving the page
         $(window).on('beforeunload submit', function() {
@@ -107,6 +117,8 @@
         });
         self.takeLockText = opts.messages.takeLockText;
         self.formIsLockedByText = opts.messages.formIsLockedByText;
+        self.postAvailableText = opts.messages.postAvailableText;
+        self.editThisPostText = opts.messages.editThisPostText;
     };
     $.extend(LockingAdminForm.prototype, locking.LockingForm.prototype);
     $.extend(LockingAdminForm.prototype, {
@@ -130,28 +142,83 @@
                 this.email = data.email;
             }
         },
+        /**
+         * Update the "Form is locked by" banner with the current lock holder.
+         * Safe to call on every 409 and every availability check.
+         */
+        updateLockedBy: function(lockedBy) {
+            if (!lockedBy) {
+                return;
+            }
+            this.lockedBy.setUp(lockedBy);
+            $("#locking-warning .locking-locked-by").html(
+                this.lockedBy.name +
+                ' (<a href="mailto:' + this.lockedBy.email + '">' +
+                    this.lockedBy.email +
+                '</a>)'
+            );
+        },
+        getAvailableNoticeHtml: function() {
+            return '<ul class="messagelist grp-messagelist" id="locking-available">' +
+                        '<li class="success grp-success">' +
+                            this.postAvailableText + ' ' +
+                            '<a id="locking-claim-lock" class="button grp-button rounded-button" onclick="window.locking.lockingFormInstance.claimLock()">' +
+                                this.editThisPostText +
+                            '</a>' +
+                        '</li>' +
+                     '</ul>';
+        },
+        showAvailableNotice: function() {
+            if ($('#locking-available').length === 0) {
+                this.$form.before(this.getAvailableNoticeHtml());
+            }
+        },
+        hideAvailableNotice: function() {
+            $('#locking-available').remove();
+        },
+        /**
+         * Read-only check used by tabs that don't hold the lock. Never
+         * claims the lock; it only shows or hides the "available" prompt.
+         */
+        checkAvailable: function() {
+            var self = this;
+            this.api.ajax({
+                type: 'GET',
+                success: function(locks) {
+                    if (locks.length === 0) {
+                        self.showAvailableNotice();
+                    } else {
+                        self.hideAvailableNotice();
+                        self.updateLockedBy(locks[0]['locked_by']);
+                    }
+                }
+            });
+        },
+        /**
+         * Called by the "Edit this post" button. Sends the normal lock
+         * request (not "Take over"), so it fails with a 409 if someone
+         * else got there first.
+         */
+        claimLock: function() {
+            this.hideAvailableNotice();
+            this.getLock();
+        },
         disableForm: function(data) {
             if (!this.formDisabled) {
-                var self = this;
-
                 // Disable Delete link
                 $('.deletelink').css({'cursor': 'not-allowed', 'opacity': 0.5}).click(false);
 
                 // Add warning notice to form
                 this.$form.before(this.getWarningHtml());
-
-                // Lookup who has the lock
-                self.lockedBy.setUp(data[0]['locked_by']);
-                $("#locking-warning .locking-locked-by").html(
-                    self.lockedBy.name +
-                    ' (<a href="mailto:' + self.lockedBy.email + '">' +
-                        self.lockedBy.email +
-                    '</a>)'
-                );
+            }
+            // Lookup who has the lock (on every 409, not just the first)
+            if (data && data[0]) {
+                this.updateLockedBy(data[0]['locked_by']);
             }
             locking.LockingForm.prototype.disableForm.call(this);
         },
         enableForm: function() {
+            this.hideAvailableNotice();
             if (this.formDisabled) {
                 $('#locking-warning').parent().remove();
             }
